@@ -1,6 +1,6 @@
 {
     "name": "vowel-cli",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "bin": {
         "vowel": "vowel.js"
     },
@@ -17,11 +17,7 @@
     "dependencies": {
         "chalk": "^5.4.1",
         "csv-parser": "^3.2.0",
-        "docx": "^9.2.0",
         "mammoth": "^1.9.0",
         "pdf-parse": "^1.1.1"
-    },
-    "scripts": {
-        "postinstall": "npm link"
     }
 }

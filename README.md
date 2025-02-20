@@ -1,6 +1,6 @@
 # Vowel CLI
 
-A CLI tool to extract vowels from text.
+A CLI tool to extract vowels from text or a file and can show the results on the terminal,or export it to a pdf in the current working directory.
 
 ## Installation
 

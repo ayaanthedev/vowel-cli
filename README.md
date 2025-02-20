@@ -1,19 +1,15 @@
-# vowel-cli
-vowel cli it can run on your terminal and it can tell all the vowels from a word or a paragraph or an sentence
+# Vowel CLI
 
-# Installiation
+A CLI tool to extract vowels from text.
 
-```
+## Installation
+
+To install the CLI tool globally, run:
+
+```sh
 npm install -g vowel-cli
 ```
-
-
-#Usage
-
-Open up a terminal and then run
-
-``Usage
+## How To Use It
+```sh
 vowel
 ```
-and then it will ask you that input a text
-

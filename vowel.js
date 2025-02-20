@@ -6,6 +6,7 @@ const pdf = require('pdf-parse');
 const mammoth = require('mammoth');
 const csv = require('csv-parser');
 
+
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout

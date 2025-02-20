@@ -1,6 +1,6 @@
 {
     "name": "vowel-cli",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "bin": {
         "vowel": "vowel.js"
     },

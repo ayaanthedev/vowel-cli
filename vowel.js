@@ -7,168 +7,198 @@ const mammoth = require('mammoth');
 const csv = require('csv-parser');
 const PDFDocument = require('pdfkit');
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-// Function to extract vowels and consonants from input text
-function analyzeText(text) {
-    // Remove non-alphabetic characters
-    const cleanedText = text.replace(/[^a-zA-Z]/g, '');
-    console.log(chalk.cyan('Cleaned Text:'), cleanedText); // Log the cleaned text
-    const vowels = cleanedText.match(/[aeiou]/gi) || [];
-    const consonants = cleanedText.match(/[bcdfghjklmnpqrstvwxyz]/gi) || [];
-    const vowelCounts = countOccurrences(vowels.map(v => v.toLowerCase()));
-    const consonantCounts = countOccurrences(consonants.map(c => c.toLowerCase()));
-    return {
-        vowels,
-        consonants,
-        vowelCounts,
-        consonantCounts,
-        vowelCount: vowels.length,
-        consonantCount: consonants.length,
-        totalCharacters: cleanedText.length
-    };
-}
-
-// Function to count occurrences of each character
-function countOccurrences(arr) {
-    return arr.reduce((acc, char) => {
-        acc[char] = (acc[char] || 0) + 1;
-        return acc;
-    }, {});
-}
-
-// Function to display statistics
-function displayStatistics(stats) {
-    console.log(chalk.green('Vowels found:'), chalk.blue(JSON.stringify(stats.vowelCounts, null, 2)));
-    console.log(chalk.green('Consonants found:'), chalk.blue(JSON.stringify(stats.consonantCounts, null, 2)));
-    console.log(chalk.yellow(`Total vowels: ${stats.vowelCount}`));
-    console.log(chalk.yellow(`Total consonants: ${stats.consonantCount}`));
-    console.log(chalk.yellow(`Total characters: ${stats.totalCharacters}`));
-}
-
-// Function to export statistics to a PDF
-function exportToPDF(stats) {
-    const doc = new PDFDocument();
-    const filePath = 'vowel_statistics.pdf';
-    doc.pipe(fs.createWriteStream(filePath));
-
-    doc.fontSize(16).text('Vowel and Consonant Analysis', { align: 'center' });
-    doc.moveDown();
-
-    doc.fontSize(14).text('Vowels:', { underline: true });
-    doc.fontSize(12).text(JSON.stringify(stats.vowelCounts, null, 2));
-    doc.moveDown();
-
-    doc.fontSize(14).text('Consonants:', { underline: true });
-    doc.fontSize(12).text(JSON.stringify(stats.consonantCounts, null, 2));
-    doc.moveDown();
-
-    doc.fontSize(14).text('Statistics:', { underline: true });
-    doc.fontSize(12).text(`Total vowels: ${stats.vowelCount}`);
-    doc.text(`Total consonants: ${stats.consonantCount}`);
-    doc.text(`Total characters: ${stats.totalCharacters}`);
-
-    doc.end();
-    console.log(chalk.green(`Results exported to ${filePath}`));
-}
-
-// Function to read input from a file
-function readFileInput(filePath) {
-    const fileExtension = filePath.split('.').pop().toLowerCase();
-    if (fileExtension === 'json') {
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) {
-                console.error(chalk.red('Error reading file:'), err);
-                rl.close();
-                return;
-            }
-            const jsonData = JSON.parse(data);
-            const text = JSON.stringify(jsonData);
-            const stats = analyzeText(text);
-            displayStatistics(stats);
-            askToExport(stats);
+class VowelCLI {
+    constructor() {
+        this.rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
         });
-    } else if (fileExtension === 'csv') {
-        const results = [];
-        fs.createReadStream(filePath)
-            .pipe(csv())
-            .on('data', (data) => results.push(data))
-            .on('end', () => {
-                const text = JSON.stringify(results);
-                const stats = analyzeText(text);
-                displayStatistics(stats);
-                askToExport(stats);
-            })
-            .on('error', (err) => {
-                console.error(chalk.red('Error reading file:'), err);
-                rl.close();
-            });
-    } else if (fileExtension === 'pdf') {
-        const dataBuffer = fs.readFileSync(filePath);
-        pdf(dataBuffer).then((data) => {
-            const text = data.text;
-            const stats = analyzeText(text);
-            displayStatistics(stats);
-            askToExport(stats);
-        }).catch((err) => {
-            console.error(chalk.red('Error reading file:'), err);
-            rl.close();
-        });
-    } else if (fileExtension === 'docx' || fileExtension === 'odt') {
-        mammoth.extractRawText({ path: filePath })
-            .then((result) => {
-                const text = result.value;
-                const stats = analyzeText(text);
-                displayStatistics(stats);
-                askToExport(stats);
-            })
-            .catch((err) => {
-                console.error(chalk.red('Error reading file:'), err);
-                rl.close();
-            });
-    } else {
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) {
-                console.error(chalk.red('Error reading file:'), err);
-                rl.close();
-                return;
-            }
-            const stats = analyzeText(data);
-            displayStatistics(stats);
-            askToExport(stats);
-        });
+
+        // Smart patterns for better accuracy
+        this.patterns = {
+            vowels: /[aeiou]/gi,
+            consonants: /[bcdfghjklmnpqrstvwxyz]/gi,
+            words: /\b\w+\b/g
+        };
     }
-}
 
-// Function to ask user if they want to export results to a PDF
-function askToExport(stats) {
-    rl.question(chalk.cyan('Do you want to export the results to a PDF? (yes/no): '), (answer) => {
-        if (answer.toLowerCase() === 'yes') {
-            exportToPDF(stats);
+    analyzeText(text) {
+        // Clean and normalize text
+        const cleanText = text.toLowerCase().replace(/[^a-z\s]/g, '');
+        const words = text.match(this.patterns.words) || [];
+
+        // Count characters
+        const vowels = cleanText.match(this.patterns.vowels) || [];
+        const consonants = cleanText.match(this.patterns.consonants) || [];
+
+        // Find interesting patterns
+        const longestWord = words.reduce((a, b) => a.length > b.length ? a : b, '');
+        const mostVowels = words.reduce((a, b) => {
+            const aCount = (a.match(this.patterns.vowels) || []).length;
+            const bCount = (b.match(this.patterns.vowels) || []).length;
+            return aCount > bCount ? a : b;
+        }, '');
+
+        return {
+            stats: {
+                vowels: this.countLetters(vowels),
+                consonants: this.countLetters(consonants),
+                totalVowels: vowels.length,
+                totalConsonants: consonants.length,
+                totalWords: words.length,
+                averageWordLength: (cleanText.length / words.length).toFixed(2)
+            },
+            interesting: {
+                longestWord,
+                mostVowels,
+                vowelPercentage: ((vowels.length / cleanText.length) * 100).toFixed(2)
+            }
+        };
+    }
+
+    countLetters(letters) {
+        return letters.reduce((acc, letter) => {
+            acc[letter] = (acc[letter] || 0) + 1;
+            return acc;
+        }, {});
+    }
+
+    displayResults(results) {
+        console.log('\n' + chalk.bold.cyan('📊 Analysis Results'));
+        console.log('─'.repeat(50));
+
+        // Core stats
+        console.log(chalk.yellow('\n📈 Basic Statistics'));
+        console.log(`Total Words: ${results.stats.totalWords}`);
+        console.log(`Total Vowels: ${results.stats.totalVowels}`);
+        console.log(`Total Consonants: ${results.stats.totalConsonants}`);
+        console.log(`Average Word Length: ${results.stats.averageWordLength} letters`);
+
+        // Interesting findings
+        console.log(chalk.yellow('\n🌟 Interesting Findings'));
+        console.log(`Longest Word: "${results.interesting.longestWord}"`);
+        console.log(`Word with Most Vowels: "${results.interesting.mostVowels}"`);
+        console.log(`Text is ${results.interesting.vowelPercentage}% vowels`);
+
+        // Detailed counts
+        console.log(chalk.yellow('\n📝 Letter Breakdown'));
+        console.log('Vowels:', this.formatCounts(results.stats.vowels));
+        console.log('Consonants:', this.formatCounts(results.stats.consonants));
+    }
+
+    formatCounts(counts) {
+        return Object.entries(counts)
+            .map(([letter, count]) => `${letter}: ${count}`)
+            .join(', ');
+    }
+
+    async createPDF(results) {
+        const doc = new PDFDocument();
+        const filename = 'vowel-analysis.pdf';
+        doc.pipe(fs.createWriteStream(filename));
+
+        // Title
+        doc.fontSize(24).text('Vowel Analysis Report', { align: 'center' });
+        doc.moveDown();
+
+        // Basic Stats
+        doc.fontSize(16).text('Basic Statistics');
+        doc.fontSize(12);
+        doc.text(`Total Words: ${results.stats.totalWords}`);
+        doc.text(`Total Vowels: ${results.stats.totalVowels}`);
+        doc.text(`Total Consonants: ${results.stats.totalConsonants}`);
+        doc.text(`Average Word Length: ${results.stats.averageWordLength} letters`);
+        doc.moveDown();
+
+        // Interesting Findings
+        doc.fontSize(16).text('Interesting Findings');
+        doc.fontSize(12);
+        doc.text(`Longest Word: "${results.interesting.longestWord}"`);
+        doc.text(`Word with Most Vowels: "${results.interesting.mostVowels}"`);
+        doc.text(`Vowel Percentage: ${results.interesting.vowelPercentage}%`);
+        doc.moveDown();
+
+        // Letter Counts
+        doc.fontSize(16).text('Letter Breakdown');
+        doc.fontSize(12);
+        doc.text('Vowels: ' + this.formatCounts(results.stats.vowels));
+        doc.text('Consonants: ' + this.formatCounts(results.stats.consonants));
+
+        doc.end();
+        console.log(chalk.green(`\n✨ PDF report generated: ${filename}`));
+    }
+
+    async processFile(filePath) {
+        const extension = filePath.split('.').pop().toLowerCase();
+        
+        try {
+            let text;
+            switch (extension) {
+                case 'pdf':
+                    const pdfData = await pdf(await fs.promises.readFile(filePath));
+                    text = pdfData.text;
+                    break;
+                case 'docx':
+                    const docxData = await mammoth.extractRawText({ path: filePath });
+                    text = docxData.value;
+                    break;
+                case 'csv':
+                    const rows = [];
+                    await new Promise((resolve, reject) => {
+                        fs.createReadStream(filePath)
+                            .pipe(csv())
+                            .on('data', row => rows.push(Object.values(row).join(' ')))
+                            .on('end', resolve)
+                            .on('error', reject);
+                    });
+                    text = rows.join('\n');
+                    break;
+                default:
+                    text = await fs.promises.readFile(filePath, 'utf8');
+            }
+            return text;
+        } catch (error) {
+            throw new Error(`Could not read file: ${error.message}`);
         }
-        rl.close();
-    });
+    }
+
+    async start() {
+        console.log(chalk.cyan.bold('\n🔤 Vowel Analysis Tool'));
+        console.log(chalk.cyan('Enter text, or type "file" to analyze a file\n'));
+
+        try {
+            const input = await new Promise(resolve => {
+                this.rl.question('> ', resolve);
+            });
+
+            let text;
+            if (input.toLowerCase() === 'file') {
+                const filePath = await new Promise(resolve => {
+                    this.rl.question('Enter file path: ', resolve);
+                });
+                text = await this.processFile(filePath);
+            } else {
+                text = input;
+            }
+
+            const results = this.analyzeText(text);
+            this.displayResults(results);
+
+            const exportPDF = await new Promise(resolve => {
+                this.rl.question('\nGenerate PDF report? (y/n): ', resolve);
+            });
+
+            if (exportPDF.toLowerCase() === 'y') {
+                await this.createPDF(results);
+            }
+
+        } catch (error) {
+            console.error(chalk.red('\n❌ Error:', error.message));
+        }
+
+        this.rl.close();
+    }
 }
 
-// Prompt user for input
-rl.question(chalk.cyan('Enter a paragraph or text (or type "file" to read from a file): '), (input) => {
-    if (input.toLowerCase() === 'file') {
-        rl.question(chalk.cyan('Enter the file path: '), (filePath) => {
-            readFileInput(filePath);
-        });
-    } else {
-        const stats = analyzeText(input);
-        displayStatistics(stats);
-        askToExport(stats);
-    }
-});
-
-// To run this script as a CLI command, add the following to package.json:
-// "bin": {
-//   "vowel": "vowel.js"
-// }
-// Then run: npm link (to create a global command)
-// Use: vowel
+// Run the CLI
+new VowelCLI().start();

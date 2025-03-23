@@ -1,32 +1,36 @@
-# Vowel CLI
+# Vowel Cli
 
-A CLI tool to analyze text and extract vowels/consonants. Supports input from terminal or files (txt, pdf, docx, json, csv) and can export results to PDF.
+![npm](https://img.shields.io/npm/v/vowel-cli?color=blue&label=npm)  
+![Downloads](https://img.shields.io/npm/dt/vowel-cli?color=green)  
+![Platform](https://img.shields.io/badge/platform-linux%20%7C%20windows%20%7C%20macos-lightgrey)  
+![Made with Node.js](https://img.shields.io/badge/Made%20with-Node.js-green)  
+[![License](https://img.shields.io/badge/License-MIT-blue)](#license)  
+
+This project is made for students and teachers. You can run `vowel` in the terminal and insert a file path, paragraph, or anything to check the vowels inside it.
+
+
+
+
+## Authors
+
+- [@AyaanTheDev](https://www.github.com/ayaanthedev)
+
 
 ## Installation
 
-```sh
-npm install -g vowel-cli
+Install vowel-cli with npm
+
+```bash
+  npm i -g vowel-cli
 ```
+    
+## Features
 
-## Usage
 
-Just run:
-```sh
-vowel
-```
+- ✅ Cross-platform (Linux, Windows, macOS)
+- 📂 File support (PDF, etc.)
 
-Then either:
-- Type/paste your text directly
-- Or type "file" and provide the file path when prompted
-
-The tool will:
-1. Show vowel and consonant statistics
-2. Ask if you want to export results to PDF
 
 ## License
 
-MIT License
-
-## Author
-
-AyaanTheDev
+[![License](https://img.shields.io/badge/License-MIT-blue)](#license)
